@@ -4,6 +4,7 @@ import { Markdown } from "tiptap-markdown";
 import { useEffect, useRef } from "react";
 import { WikiLink } from "./wikilink-node";
 import { WikiLinkSuggestion } from "./wikilink-suggestion";
+import { StatBlock } from "./statblock-node";
 
 export interface MarkdownEditorProps {
   value: string;
@@ -47,6 +48,7 @@ export function MarkdownEditor({
       WikiLinkSuggestion.configure({
         getSuggestions: () => getSuggestionsRef.current?.() ?? [],
       }),
+      StatBlock,
     ],
     content: value,
     editable,

@@ -183,3 +183,107 @@ body {
   color: #888;
   cursor: default;
 }
+
+.myc-editor-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.myc-view-toggle {
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.myc-entity-schema {
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.myc-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.myc-form-row input,
+.myc-form-row select,
+.myc-form-row textarea {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.myc-form-row textarea {
+  min-height: 4rem;
+  resize: vertical;
+}
+
+.myc-form-errors {
+  color: #d1453d;
+  font-size: 0.8rem;
+  margin: 0.5rem 0;
+  padding-left: 1.2rem;
+}
+
+.myc-statblock {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin: 0.75rem 0;
+  background: #f7f7fb;
+}
+
+.myc-statblock__title {
+  font-weight: 600;
+}
+
+.myc-statblock__subtitle {
+  font-size: 0.7rem;
+  color: #888;
+  margin-bottom: 0.4rem;
+}
+
+.myc-statblock__raw {
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  color: #444;
+  margin: 0;
+}
+
+.myc-graph-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.myc-graph-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+}
+
+.myc-graph-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.myc-graph-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}

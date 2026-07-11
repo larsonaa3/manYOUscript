@@ -2,12 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVault, countWords, type VaultFileInfo } from "@manyouscript/data-layer";
 import { MarkdownEditor } from "@manyouscript/editor-core";
 import { GraphView, type GraphViewEdge, type GraphViewNode } from "@manyouscript/graph-view";
-import { VaultIndex, type LinkRecord } from "@manyouscript/index-db";
-import { deriveTitle, extractWikilinkTargets, parseNote, stringifyNote } from "@manyouscript/markdown-io";
+import { VaultIndex, type LinkRecord, type FileRecord } from "@manyouscript/index-db";
+import {
+  deriveTitle,
+  extractStructuredBlocks,
+  parseNote,
+  stringifyNote,
+  upsertStructuredBlock,
+} from "@manyouscript/markdown-io";
+import { isStatBlockSchemaId, STAT_BLOCK_REGISTRY } from "@manyouscript/rpg-schemas";
 import { Button, Panel } from "@manyouscript/ui";
+import { CharacterSheetForm } from "./CharacterSheetForm";
+import { deriveIndexInputs } from "./derive-index-inputs";
 import "./styles.css";
 
 const SAVE_DEBOUNCE_MS = 500;
+
+type ViewMode = "editor" | "sheet";
 
 export function App() {
   const vault = useVault();
@@ -17,6 +28,7 @@ export function App() {
   const [content, setContent] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [indexVersion, setIndexVersion] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>("editor");
 
   const vaultIndexRef = useRef(new VaultIndex());
   const frontmatterRef = useRef<Record<string, unknown>>({});
@@ -26,15 +38,15 @@ export function App() {
     async (file: VaultFileInfo, rawOverride?: string) => {
       const raw = rawOverride ?? (await vault.readFile(file.path));
       const parsed = parseNote(raw);
-      vaultIndexRef.current.setFile(
-        {
-          path: file.path,
-          relativePath: file.relativePath,
-          title: deriveTitle(file.name, parsed.frontmatter),
-          frontmatter: parsed.frontmatter,
-        },
-        parsed.wikilinkTargets,
-      );
+      const { entitySchemaId, links } = deriveIndexInputs(parsed);
+      const record: FileRecord = {
+        path: file.path,
+        relativePath: file.relativePath,
+        title: deriveTitle(file.name, parsed.frontmatter),
+        frontmatter: parsed.frontmatter,
+        ...(entitySchemaId ? { entitySchemaId } : {}),
+      };
+      vaultIndexRef.current.setFile(record, links);
       return parsed;
     },
     [vault],
@@ -69,6 +81,7 @@ export function App() {
       setSelectedFile(file);
       setContent(parsed.body);
       setIsDirty(false);
+      setViewMode("editor");
     },
     [vault],
   );
@@ -102,15 +115,15 @@ export function App() {
       const raw = stringifyNote(frontmatterRef.current, content);
       void vault.writeFile(selectedFile.path, raw).then(() => {
         setIsDirty(false);
-        vaultIndexRef.current.setFile(
-          {
-            path: selectedFile.path,
-            relativePath: selectedFile.relativePath,
-            title: deriveTitle(selectedFile.name, frontmatterRef.current),
-            frontmatter: frontmatterRef.current,
-          },
-          extractWikilinkTargets(content),
-        );
+        const { entitySchemaId, links } = deriveIndexInputs(parseNote(raw));
+        const record: FileRecord = {
+          path: selectedFile.path,
+          relativePath: selectedFile.relativePath,
+          title: deriveTitle(selectedFile.name, frontmatterRef.current),
+          frontmatter: frontmatterRef.current,
+          ...(entitySchemaId ? { entitySchemaId } : {}),
+        };
+        vaultIndexRef.current.setFile(record, links);
         setIndexVersion((v) => v + 1);
       });
     }, SAVE_DEBOUNCE_MS);
@@ -125,6 +138,15 @@ export function App() {
     setContent(next);
     setIsDirty(true);
   }, []);
+
+  const handleSaveStatBlock = useCallback((schemaId: string, data: Record<string, unknown>) => {
+    setContent((prev) => upsertStructuredBlock(prev, schemaId, data));
+    setIsDirty(true);
+  }, []);
+
+  const currentStatBlock = useMemo(() => {
+    return extractStructuredBlocks(content).find((b) => isStatBlockSchemaId(b.schemaId)) ?? null;
+  }, [content]);
 
   const backlinks: LinkRecord[] = useMemo(() => {
     if (!selectedFile) {
@@ -148,9 +170,32 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indexVersion]);
 
+  const sessions = useMemo(() => {
+    return vaultIndexRef.current
+      .getAllFiles()
+      .filter((f) => f.frontmatter.type === "session")
+      .sort((a, b) => String(a.frontmatter.date ?? "").localeCompare(String(b.frontmatter.date ?? "")));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indexVersion]);
+
+  const entities = useMemo(() => {
+    return vaultIndexRef.current.getEntities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indexVersion]);
+
   const handleGraphNodeClick = useCallback(
     (node: GraphViewNode) => {
       const match = files.find((f) => f.path === node.id);
+      if (match) {
+        void handleSelectFile(match);
+      }
+    },
+    [files, handleSelectFile],
+  );
+
+  const navigateToPath = useCallback(
+    (path: string) => {
+      const match = files.find((f) => f.path === path);
       if (match) {
         void handleSelectFile(match);
       }
@@ -184,22 +229,77 @@ export function App() {
             ))}
           </ul>
         </Panel>
+        {sessions.length > 0 ? (
+          <Panel title="Sessions">
+            <ul className="myc-file-list">
+              {sessions.map((session) => (
+                <li key={session.path}>
+                  <button
+                    type="button"
+                    className="myc-file-list__item"
+                    onClick={() => navigateToPath(session.path)}
+                  >
+                    {typeof session.frontmatter.date === "string" ? `${session.frontmatter.date} — ` : ""}
+                    {session.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        ) : null}
+        {entities.length > 0 ? (
+          <Panel title="Characters & NPCs">
+            <ul className="myc-file-list">
+              {entities.map((entity) => (
+                <li key={entity.path}>
+                  <button
+                    type="button"
+                    className="myc-file-list__item"
+                    onClick={() => navigateToPath(entity.path)}
+                  >
+                    {entity.title}
+                    <span className="myc-entity-schema">
+                      {entity.entitySchemaId ? STAT_BLOCK_REGISTRY[entity.entitySchemaId as keyof typeof STAT_BLOCK_REGISTRY]?.label : ""}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        ) : null}
       </aside>
       <main className="myc-main">
         {selectedFile ? (
           <>
             <div className="myc-editor-header">
               <span>{selectedFile.relativePath}</span>
-              <span>
-                {countWords(content)} words &middot; {isDirty ? "saving…" : "saved"}
+              <span className="myc-editor-header__actions">
+                <button
+                  type="button"
+                  className="myc-view-toggle"
+                  onClick={() => setViewMode(viewMode === "editor" ? "sheet" : "editor")}
+                >
+                  {viewMode === "editor" ? "Character Sheet" : "Back to Note"}
+                </button>
+                <span>
+                  {countWords(content)} words &middot; {isDirty ? "saving…" : "saved"}
+                </span>
               </span>
             </div>
-            <MarkdownEditor
-              value={content}
-              onChange={handleContentChange}
-              onNavigateWikilink={handleNavigateWikilink}
-              getWikilinkSuggestions={getWikilinkSuggestions}
-            />
+            {viewMode === "sheet" ? (
+              <CharacterSheetForm
+                schemaId={currentStatBlock?.schemaId ?? null}
+                data={(currentStatBlock?.data as Record<string, unknown>) ?? {}}
+                onSave={handleSaveStatBlock}
+              />
+            ) : (
+              <MarkdownEditor
+                value={content}
+                onChange={handleContentChange}
+                onNavigateWikilink={handleNavigateWikilink}
+                getWikilinkSuggestions={getWikilinkSuggestions}
+              />
+            )}
           </>
         ) : (
           <Panel title="manYOUscript">
@@ -214,18 +314,14 @@ export function App() {
               {backlinks.map((link) => {
                 const source = vaultIndexRef.current.getFile(link.sourcePath);
                 return (
-                  <li key={link.sourcePath}>
+                  <li key={`${link.sourcePath}-${link.kind}`}>
                     <button
                       type="button"
                       className="myc-file-list__item"
-                      onClick={() => {
-                        const match = files.find((f) => f.path === link.sourcePath);
-                        if (match) {
-                          void handleSelectFile(match);
-                        }
-                      }}
+                      onClick={() => navigateToPath(link.sourcePath)}
                     >
                       {source?.title ?? link.sourcePath}
+                      {link.kind !== "wikilink" ? <span className="myc-entity-schema">{link.kind}</span> : null}
                     </button>
                   </li>
                 );

@@ -1,10 +1,12 @@
 import { splitFrontmatter, joinFrontmatter } from "./frontmatter";
 import { extractWikilinkTargets } from "./wikilinks";
+import { extractStructuredBlocks, type StructuredBlock } from "./structured-blocks";
 
 export interface ParsedNote {
   frontmatter: Record<string, unknown>;
   body: string;
   wikilinkTargets: string[];
+  structuredBlocks: StructuredBlock[];
 }
 
 export function parseNote(raw: string): ParsedNote {
@@ -13,6 +15,7 @@ export function parseNote(raw: string): ParsedNote {
     frontmatter,
     body,
     wikilinkTargets: extractWikilinkTargets(body),
+    structuredBlocks: extractStructuredBlocks(body),
   };
 }
 

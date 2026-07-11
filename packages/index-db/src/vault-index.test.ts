@@ -13,7 +13,12 @@ describe("VaultIndex", () => {
 
     const backlinks = index.getBacklinks("/vault/aria.md");
     expect(backlinks).toEqual([
-      { sourcePath: "/vault/chapter-one.md", targetTitle: "Aria", targetPath: "/vault/aria.md" },
+      {
+        sourcePath: "/vault/chapter-one.md",
+        targetTitle: "Aria",
+        targetPath: "/vault/aria.md",
+        kind: "wikilink",
+      },
     ]);
   });
 
@@ -25,7 +30,9 @@ describe("VaultIndex", () => {
     const ghost = graph.nodes.find((n) => n.label === "Riverbend");
     expect(ghost).toBeDefined();
     expect(ghost?.path).toBeNull();
-    expect(graph.edges).toEqual([{ source: "/vault/chapter-one.md", target: ghost?.id }]);
+    expect(graph.edges).toEqual([
+      { source: "/vault/chapter-one.md", target: ghost?.id, kind: "wikilink" },
+    ]);
   });
 
   it("upgrades a ghost link to a real edge once the target file is added", () => {
@@ -37,7 +44,12 @@ describe("VaultIndex", () => {
 
     const backlinks = index.getBacklinks("/vault/riverbend.md");
     expect(backlinks).toEqual([
-      { sourcePath: "/vault/chapter-one.md", targetTitle: "Riverbend", targetPath: "/vault/riverbend.md" },
+      {
+        sourcePath: "/vault/chapter-one.md",
+        targetTitle: "Riverbend",
+        targetPath: "/vault/riverbend.md",
+        kind: "wikilink",
+      },
     ]);
     const graph = index.getGraph();
     expect(graph.nodes.some((n) => n.label === "Riverbend" && n.path === null)).toBe(false);
@@ -66,5 +78,36 @@ describe("VaultIndex", () => {
     index.setFile(file("/vault/aria.md", "Aria"), []);
     expect(index.findPathByTitle("aria")).toBe("/vault/aria.md");
     expect(index.findPathByTitle("ARIA")).toBe("/vault/aria.md");
+  });
+
+  it("tracks typed relationship edges alongside plain wikilinks", () => {
+    const index = new VaultIndex();
+    index.setFile(file("/vault/aria.md", "Aria"), []);
+    index.setFile(file("/vault/chapter-one.md", "Chapter One"), [
+      "Aria",
+      { targetTitle: "Aria", kind: "ally" },
+    ]);
+
+    const backlinks = index.getBacklinks("/vault/aria.md");
+    expect(backlinks.map((l) => l.kind).sort()).toEqual(["ally", "wikilink"]);
+
+    const graph = index.getGraph();
+    const kinds = graph.edges
+      .filter((e) => e.source === "/vault/chapter-one.md" && e.target === "/vault/aria.md")
+      .map((e) => e.kind)
+      .sort();
+    expect(kinds).toEqual(["ally", "wikilink"]);
+  });
+
+  it("getEntities returns only files with a recognized stat block schema", () => {
+    const index = new VaultIndex();
+    index.setFile(file("/vault/aria.md", "Aria"), []);
+    index.setFile(
+      { path: "/vault/goblin.md", relativePath: "goblin.md", title: "Goblin Scout", frontmatter: {}, entitySchemaId: "dnd5e-v1" },
+      [],
+    );
+
+    const entities = index.getEntities();
+    expect(entities.map((e) => e.title)).toEqual(["Goblin Scout"]);
   });
 });

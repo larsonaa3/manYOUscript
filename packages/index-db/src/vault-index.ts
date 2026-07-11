@@ -1,14 +1,21 @@
-import type { FileRecord, LinkRecord, Graph, GraphNode } from "./types";
+import type { FileRecord, LinkRecord, LinkInput, Graph, GraphNode } from "./types";
+
+function normalizeLinkInput(link: LinkInput): { targetTitle: string; kind: string } {
+  return typeof link === "string" ? { targetTitle: link, kind: "wikilink" } : link;
+}
 
 export class VaultIndex {
   private files = new Map<string, FileRecord>();
   private linksBySource = new Map<string, LinkRecord[]>();
 
-  setFile(record: FileRecord, wikilinkTargets: string[]): void {
+  setFile(record: FileRecord, links: LinkInput[]): void {
     this.files.set(record.path, record);
     this.linksBySource.set(
       record.path,
-      wikilinkTargets.map((targetTitle) => ({ sourcePath: record.path, targetTitle, targetPath: null })),
+      links.map((link) => {
+        const { targetTitle, kind } = normalizeLinkInput(link);
+        return { sourcePath: record.path, targetTitle, targetPath: null, kind };
+      }),
     );
     this.resolveLinks();
   }
@@ -25,6 +32,10 @@ export class VaultIndex {
 
   getAllFiles(): FileRecord[] {
     return [...this.files.values()];
+  }
+
+  getEntities(): FileRecord[] {
+    return this.getAllFiles().filter((file) => Boolean(file.entitySchemaId));
   }
 
   findPathByTitle(title: string): string | null {
@@ -65,14 +76,14 @@ export class VaultIndex {
 
     for (const link of this.getAllLinks()) {
       if (link.targetPath) {
-        edges.push({ source: link.sourcePath, target: link.targetPath });
+        edges.push({ source: link.sourcePath, target: link.targetPath, kind: link.kind });
         continue;
       }
       const ghostId = `ghost:${link.targetTitle.trim().toLowerCase()}`;
       if (!ghostNodes.has(ghostId)) {
         ghostNodes.set(ghostId, { id: ghostId, label: link.targetTitle, path: null });
       }
-      edges.push({ source: link.sourcePath, target: ghostId });
+      edges.push({ source: link.sourcePath, target: ghostId, kind: link.kind });
     }
 
     return { nodes: [...nodes, ...ghostNodes.values()], edges };

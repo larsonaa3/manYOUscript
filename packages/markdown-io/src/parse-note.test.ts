@@ -8,6 +8,17 @@ describe("parseNote", () => {
     expect(result.frontmatter).toEqual({ title: "Chapter One" });
     expect(result.body).toBe("Our hero meets [[Aria]] in [[Riverbend]].\n");
     expect(result.wikilinkTargets).toEqual(["Aria", "Riverbend"]);
+    expect(result.structuredBlocks).toEqual([]);
+  });
+
+  it("extracts fenced rpg: structured blocks alongside wikilinks", () => {
+    const raw =
+      "Meet [[Aria]].\n\n```rpg:novel-character-v1\nname: Aria\nrole: protagonist\n```\n";
+    const result = parseNote(raw);
+    expect(result.wikilinkTargets).toEqual(["Aria"]);
+    expect(result.structuredBlocks).toEqual([
+      { schemaId: "novel-character-v1", raw: "name: Aria\nrole: protagonist\n", data: { name: "Aria", role: "protagonist" } },
+    ]);
   });
 });
 
@@ -16,7 +27,7 @@ describe("stringifyNote", () => {
     const frontmatter = { title: "Chapter One" };
     const body = "Our hero meets [[Aria]].\n";
     const raw = stringifyNote(frontmatter, body);
-    expect(parseNote(raw)).toEqual({ frontmatter, body, wikilinkTargets: ["Aria"] });
+    expect(parseNote(raw)).toEqual({ frontmatter, body, wikilinkTargets: ["Aria"], structuredBlocks: [] });
   });
 });
 

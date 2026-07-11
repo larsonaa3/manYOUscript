@@ -81,6 +81,9 @@ importers:
       '@manyouscript/markdown-io':
         specifier: workspace:*
         version: link:../markdown-io
+      '@manyouscript/rpg-schemas':
+        specifier: workspace:*
+        version: link:../rpg-schemas
       '@manyouscript/ui':
         specifier: workspace:*
         version: link:../ui
@@ -94,6 +97,9 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@22.20.1)(jsdom@29.1.1)(vite@6.4.3(@types/node@22.20.1))
 
   packages/data-layer:
     devDependencies:
@@ -133,6 +139,9 @@ importers:
       '@tiptap/suggestion':
         specifier: ^3.27.3
         version: 3.27.3(@floating-ui/dom@1.8.0)(@tiptap/core@3.27.3(@tiptap/pm@3.27.3))(@tiptap/pm@3.27.3)
+      js-yaml:
+        specifier: ^5.2.1
+        version: 5.2.1
       tiptap-markdown:
         specifier: ^0.9.0
         version: 0.9.0(@tiptap/core@3.27.3(@tiptap/pm@3.27.3))
@@ -210,6 +219,19 @@ importers:
       js-yaml:
         specifier: ^5.2.1
         version: 5.2.1
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@22.20.1)(jsdom@29.1.1)(vite@6.4.3(@types/node@22.20.1))
+
+  packages/rpg-schemas:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       typescript:
         specifier: ^5.7.2
@@ -1555,6 +1577,9 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@asamuzakjp/css-color@5.1.11':
@@ -2761,3 +2786,5 @@ snapshots:
   xmlchars@2.2.0: {}
 
   yallist@3.1.1: {}
+
+  zod@4.4.3: {}

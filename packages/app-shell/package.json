@@ -6,7 +6,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@manyouscript/data-layer": "workspace:*",
@@ -14,6 +15,7 @@
     "@manyouscript/graph-view": "workspace:*",
     "@manyouscript/index-db": "workspace:*",
     "@manyouscript/markdown-io": "workspace:*",
+    "@manyouscript/rpg-schemas": "workspace:*",
     "@manyouscript/ui": "workspace:*"
   },
   "peerDependencies": {
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@types/react": "^18.3.12",
     "react": "^18.3.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
   }
 }
