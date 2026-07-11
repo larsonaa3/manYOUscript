@@ -11,6 +11,9 @@
   "dependencies": {
     "@manyouscript/data-layer": "workspace:*",
     "@manyouscript/editor-core": "workspace:*",
+    "@manyouscript/graph-view": "workspace:*",
+    "@manyouscript/index-db": "workspace:*",
+    "@manyouscript/markdown-io": "workspace:*",
     "@manyouscript/ui": "workspace:*"
   },
   "peerDependencies": {

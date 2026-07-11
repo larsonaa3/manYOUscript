@@ -2,11 +2,15 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import { useEffect, useRef } from "react";
+import { WikiLink } from "./wikilink-node";
+import { WikiLinkSuggestion } from "./wikilink-suggestion";
 
 export interface MarkdownEditorProps {
   value: string;
   onChange: (markdown: string) => void;
   editable?: boolean;
+  onNavigateWikilink?: (target: string) => void;
+  getWikilinkSuggestions?: () => string[];
 }
 
 interface MarkdownStorage {
@@ -19,12 +23,31 @@ function getMarkdown(editor: Editor): string {
   return (editor.storage as unknown as MarkdownStorage).markdown.getMarkdown();
 }
 
-export function MarkdownEditor({ value, onChange, editable = true }: MarkdownEditorProps) {
+export function MarkdownEditor({
+  value,
+  onChange,
+  editable = true,
+  onNavigateWikilink,
+  getWikilinkSuggestions,
+}: MarkdownEditorProps) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onNavigateRef = useRef(onNavigateWikilink);
+  onNavigateRef.current = onNavigateWikilink;
+  const getSuggestionsRef = useRef(getWikilinkSuggestions);
+  getSuggestionsRef.current = getWikilinkSuggestions;
 
   const editor = useEditor({
-    extensions: [StarterKit, Markdown],
+    extensions: [
+      StarterKit,
+      Markdown,
+      WikiLink.configure({
+        onNavigate: (target) => onNavigateRef.current?.(target),
+      }),
+      WikiLinkSuggestion.configure({
+        getSuggestions: () => getSuggestionsRef.current?.() ?? [],
+      }),
+    ],
     content: value,
     editable,
     onUpdate({ editor }) {
