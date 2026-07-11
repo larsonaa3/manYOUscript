@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+.DS_Store
+apps/desktop/src-tauri/target/
+apps/mobile/ios/
+apps/mobile/android/
+.env
+.env.local

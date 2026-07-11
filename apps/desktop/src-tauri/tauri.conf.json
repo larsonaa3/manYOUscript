@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "manYOUscript",
+  "version": "0.0.0",
+  "identifier": "com.manyouscript.app",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @manyouscript/desktop dev",
+    "beforeBuildCommand": "pnpm --filter @manyouscript/desktop build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "manYOUscript",
+        "width": 1024,
+        "height": 720
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ]
+  }
+}
