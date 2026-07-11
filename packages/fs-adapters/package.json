@@ -1,5 +1,5 @@
 {
-  "name": "@manyouscript/app-shell",
+  "name": "@manyouscript/fs-adapters",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,15 +10,10 @@
   },
   "dependencies": {
     "@manyouscript/data-layer": "workspace:*",
-    "@manyouscript/editor-core": "workspace:*",
-    "@manyouscript/ui": "workspace:*"
-  },
-  "peerDependencies": {
-    "react": "^18.3.1"
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
-    "react": "^18.3.1",
     "typescript": "^5.7.2"
   }
 }
