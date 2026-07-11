@@ -30,6 +30,17 @@ body {
   overflow: hidden;
 }
 
+.myc-layout--focus .myc-sidebar,
+.myc-layout--focus .myc-right-sidebar {
+  display: none;
+}
+
+.myc-layout--focus .myc-main .ProseMirror {
+  max-width: 720px;
+  margin: 0 auto;
+  font-size: 1.1rem;
+}
+
 .myc-vault-path {
   font-size: 0.75rem;
   color: #666;
@@ -286,4 +297,47 @@ body {
   height: 10px;
   border-radius: 50%;
   display: inline-block;
+}
+
+.myc-manuscript {
+  margin-bottom: 0.75rem;
+}
+
+.myc-manuscript__title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.myc-chapter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.myc-chapter-row .myc-file-list__item {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+}
+
+.myc-chapter-row__controls {
+  display: flex;
+  flex-direction: column;
+}
+
+.myc-reorder-button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.65rem;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+}
+
+.myc-reorder-button:disabled {
+  opacity: 0.3;
+  cursor: default;
 }

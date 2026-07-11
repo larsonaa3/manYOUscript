@@ -110,4 +110,50 @@ describe("VaultIndex", () => {
     const entities = index.getEntities();
     expect(entities.map((e) => e.title)).toEqual(["Goblin Scout"]);
   });
+
+  it("getManuscripts groups chapters by frontmatter.manuscript, sorted by order, with aggregate word counts", () => {
+    const index = new VaultIndex();
+    index.setFile(
+      {
+        path: "/vault/ch2.md",
+        relativePath: "ch2.md",
+        title: "Chapter Two",
+        frontmatter: { manuscript: "My Novel", order: 2 },
+        wordCount: 500,
+      },
+      [],
+    );
+    index.setFile(
+      {
+        path: "/vault/ch1.md",
+        relativePath: "ch1.md",
+        title: "Chapter One",
+        frontmatter: { manuscript: "My Novel", order: 1 },
+        wordCount: 300,
+      },
+      [],
+    );
+    index.setFile(file("/vault/unrelated.md", "Unrelated Note"), []);
+
+    const manuscripts = index.getManuscripts();
+    expect(manuscripts).toHaveLength(1);
+    expect(manuscripts[0]!.name).toBe("My Novel");
+    expect(manuscripts[0]!.chapters.map((c) => c.title)).toEqual(["Chapter One", "Chapter Two"]);
+    expect(manuscripts[0]!.totalWordCount).toBe(800);
+  });
+
+  it("getManuscripts falls back to relativePath ordering when order is missing", () => {
+    const index = new VaultIndex();
+    index.setFile(
+      { path: "/vault/b.md", relativePath: "b.md", title: "B", frontmatter: { manuscript: "Untitled" } },
+      [],
+    );
+    index.setFile(
+      { path: "/vault/a.md", relativePath: "a.md", title: "A", frontmatter: { manuscript: "Untitled" } },
+      [],
+    );
+
+    const [manuscript] = index.getManuscripts();
+    expect(manuscript!.chapters.map((c) => c.relativePath)).toEqual(["a.md", "b.md"]);
+  });
 });

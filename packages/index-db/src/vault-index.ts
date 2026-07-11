@@ -1,4 +1,4 @@
-import type { FileRecord, LinkRecord, LinkInput, Graph, GraphNode } from "./types";
+import type { FileRecord, LinkRecord, LinkInput, Graph, GraphNode, Manuscript } from "./types";
 
 function normalizeLinkInput(link: LinkInput): { targetTitle: string; kind: string } {
   return typeof link === "string" ? { targetTitle: link, kind: "wikilink" } : link;
@@ -36,6 +36,35 @@ export class VaultIndex {
 
   getEntities(): FileRecord[] {
     return this.getAllFiles().filter((file) => Boolean(file.entitySchemaId));
+  }
+
+  getManuscripts(): Manuscript[] {
+    const groups = new Map<string, FileRecord[]>();
+    for (const file of this.files.values()) {
+      const manuscript = file.frontmatter.manuscript;
+      if (typeof manuscript !== "string" || manuscript.trim().length === 0) {
+        continue;
+      }
+      const list = groups.get(manuscript) ?? [];
+      list.push(file);
+      groups.set(manuscript, list);
+    }
+
+    const manuscripts: Manuscript[] = [];
+    for (const [name, chapters] of groups) {
+      const sorted = [...chapters].sort((a, b) => {
+        const orderA = typeof a.frontmatter.order === "number" ? a.frontmatter.order : Number.POSITIVE_INFINITY;
+        const orderB = typeof b.frontmatter.order === "number" ? b.frontmatter.order : Number.POSITIVE_INFINITY;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return a.relativePath.localeCompare(b.relativePath);
+      });
+      const totalWordCount = sorted.reduce((sum, f) => sum + (f.wordCount ?? 0), 0);
+      manuscripts.push({ name, chapters: sorted, totalWordCount });
+    }
+    manuscripts.sort((a, b) => a.name.localeCompare(b.name));
+    return manuscripts;
   }
 
   findPathByTitle(title: string): string | null {

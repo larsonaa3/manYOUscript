@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVault, countWords, type VaultFileInfo } from "@manyouscript/data-layer";
 import { MarkdownEditor } from "@manyouscript/editor-core";
 import { GraphView, type GraphViewEdge, type GraphViewNode } from "@manyouscript/graph-view";
-import { VaultIndex, type LinkRecord, type FileRecord } from "@manyouscript/index-db";
+import { VaultIndex, type LinkRecord, type FileRecord, type Manuscript } from "@manyouscript/index-db";
 import {
   deriveTitle,
   extractStructuredBlocks,
@@ -14,6 +14,7 @@ import { isStatBlockSchemaId, STAT_BLOCK_REGISTRY } from "@manyouscript/rpg-sche
 import { Button, Panel } from "@manyouscript/ui";
 import { CharacterSheetForm } from "./CharacterSheetForm";
 import { deriveIndexInputs } from "./derive-index-inputs";
+import { computeReorderSwap } from "./compute-reorder-swap";
 import "./styles.css";
 
 const SAVE_DEBOUNCE_MS = 500;
@@ -29,6 +30,7 @@ export function App() {
   const [isDirty, setIsDirty] = useState(false);
   const [indexVersion, setIndexVersion] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
+  const [distractionFree, setDistractionFree] = useState(false);
 
   const vaultIndexRef = useRef(new VaultIndex());
   const frontmatterRef = useRef<Record<string, unknown>>({});
@@ -44,6 +46,7 @@ export function App() {
         relativePath: file.relativePath,
         title: deriveTitle(file.name, parsed.frontmatter),
         frontmatter: parsed.frontmatter,
+        wordCount: countWords(parsed.body),
         ...(entitySchemaId ? { entitySchemaId } : {}),
       };
       vaultIndexRef.current.setFile(record, links);
@@ -121,6 +124,7 @@ export function App() {
           relativePath: selectedFile.relativePath,
           title: deriveTitle(selectedFile.name, frontmatterRef.current),
           frontmatter: frontmatterRef.current,
+          wordCount: countWords(content),
           ...(entitySchemaId ? { entitySchemaId } : {}),
         };
         vaultIndexRef.current.setFile(record, links);
@@ -183,6 +187,37 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indexVersion]);
 
+  const manuscripts = useMemo(() => {
+    return vaultIndexRef.current.getManuscripts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indexVersion]);
+
+  const handleReorderChapter = useCallback(
+    async (chapters: FileRecord[], index: number, direction: -1 | 1) => {
+      const steps = computeReorderSwap(chapters, index, direction);
+      if (!steps) {
+        return;
+      }
+      for (const { path, newOrder } of steps) {
+        if (selectedFile && path === selectedFile.path) {
+          frontmatterRef.current = { ...frontmatterRef.current, order: newOrder };
+          await vault.writeFile(path, stringifyNote(frontmatterRef.current, content));
+        } else {
+          const raw = await vault.readFile(path);
+          const parsed = parseNote(raw);
+          const updatedFrontmatter = { ...parsed.frontmatter, order: newOrder };
+          await vault.writeFile(path, stringifyNote(updatedFrontmatter, parsed.body));
+        }
+        const info = files.find((f) => f.path === path);
+        if (info) {
+          await indexFile(info);
+        }
+      }
+      setIndexVersion((v) => v + 1);
+    },
+    [selectedFile, content, vault, files, indexFile],
+  );
+
   const handleGraphNodeClick = useCallback(
     (node: GraphViewNode) => {
       const match = files.find((f) => f.path === node.id);
@@ -204,7 +239,7 @@ export function App() {
   );
 
   return (
-    <div className="myc-layout">
+    <div className={distractionFree ? "myc-layout myc-layout--focus" : "myc-layout"}>
       <aside className="myc-sidebar">
         <Panel title="Vault">
           <Button onClick={() => void handleOpenVault()}>
@@ -229,6 +264,56 @@ export function App() {
             ))}
           </ul>
         </Panel>
+        {manuscripts.length > 0 ? (
+          <Panel title="Manuscripts">
+            {manuscripts.map((manuscript: Manuscript) => (
+              <div key={manuscript.name} className="myc-manuscript">
+                <div className="myc-manuscript__title">
+                  {manuscript.name}
+                  <span className="myc-entity-schema">{manuscript.totalWordCount} words</span>
+                </div>
+                <ul className="myc-file-list">
+                  {manuscript.chapters.map((chapter, index) => (
+                    <li key={chapter.path} className="myc-chapter-row">
+                      <button
+                        type="button"
+                        className={
+                          chapter.path === selectedFile?.path
+                            ? "myc-file-list__item myc-file-list__item--active"
+                            : "myc-file-list__item"
+                        }
+                        onClick={() => navigateToPath(chapter.path)}
+                      >
+                        {chapter.title}
+                        <span className="myc-entity-schema">{chapter.wordCount ?? 0} words</span>
+                      </button>
+                      <span className="myc-chapter-row__controls">
+                        <button
+                          type="button"
+                          className="myc-reorder-button"
+                          disabled={index === 0}
+                          onClick={() => void handleReorderChapter(manuscript.chapters, index, -1)}
+                          aria-label={`Move ${chapter.title} up`}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="myc-reorder-button"
+                          disabled={index === manuscript.chapters.length - 1}
+                          onClick={() => void handleReorderChapter(manuscript.chapters, index, 1)}
+                          aria-label={`Move ${chapter.title} down`}
+                        >
+                          ↓
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </Panel>
+        ) : null}
         {sessions.length > 0 ? (
           <Panel title="Sessions">
             <ul className="myc-file-list">
@@ -274,6 +359,13 @@ export function App() {
             <div className="myc-editor-header">
               <span>{selectedFile.relativePath}</span>
               <span className="myc-editor-header__actions">
+                <button
+                  type="button"
+                  className="myc-view-toggle"
+                  onClick={() => setDistractionFree((v) => !v)}
+                >
+                  {distractionFree ? "Exit Focus Mode" : "Focus Mode"}
+                </button>
                 <button
                   type="button"
                   className="myc-view-toggle"

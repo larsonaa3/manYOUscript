@@ -5,6 +5,14 @@ export interface FileRecord {
   frontmatter: Record<string, unknown>;
   /** Schema id of a recognized stat block found in this file, if any (e.g. "dnd5e-v1"). */
   entitySchemaId?: string;
+  /** Word count of the file's body, if known at index time. */
+  wordCount?: number;
+}
+
+export interface Manuscript {
+  name: string;
+  chapters: FileRecord[];
+  totalWordCount: number;
 }
 
 /** "wikilink" for plain [[links]]; otherwise the relationship type (e.g. "ally", "enemy"). */
