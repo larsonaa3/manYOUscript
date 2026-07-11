@@ -1,0 +1,19 @@
+{
+  "name": "@manyouscript/fs-adapters",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@manyouscript/data-layer": "workspace:*",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
