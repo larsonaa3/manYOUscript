@@ -6,7 +6,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@manyouscript/data-layer": "workspace:*",
@@ -14,6 +15,8 @@
     "@tauri-apps/plugin-fs": "^2.5.1"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "@types/wicg-file-system-access": "^2023.10.7",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.10"
   }
 }

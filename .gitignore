@@ -9,3 +9,5 @@ apps/mobile/ios/
 apps/mobile/android/
 .env
 .env.local
+test-results/
+playwright-report/
