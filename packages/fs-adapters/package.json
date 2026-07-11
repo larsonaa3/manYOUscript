@@ -10,6 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/filesystem": "^8.1.2",
     "@manyouscript/data-layer": "workspace:*",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-fs": "^2.5.1"

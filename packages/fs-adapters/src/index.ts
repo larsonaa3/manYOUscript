@@ -5,3 +5,5 @@ export { FallbackVaultAdapter } from "./fallback-vault-adapter";
 export { buildFileMap } from "./build-file-map";
 export type { FileLike, FileMapResult } from "./build-file-map";
 export { createWebVaultAdapter } from "./create-web-vault-adapter";
+export { CapacitorVaultAdapter } from "./capacitor-vault-adapter";
+export { CapacitorDirReader } from "./capacitor-dir-reader";

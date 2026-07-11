@@ -41,6 +41,73 @@ body {
   font-size: 1.1rem;
 }
 
+.myc-mobile-nav-toggle {
+  display: none;
+}
+
+.myc-mobile-nav-scrim {
+  display: none;
+}
+
+/* Touch/small-screen layout: the left nav becomes a slide-in drawer
+   toggled by a hamburger button; the right sidebar (backlinks/graph) is
+   desktop/tablet-only supplementary context for v1. */
+@media (max-width: 768px) {
+  .myc-mobile-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 20;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+
+  .myc-right-sidebar {
+    display: none;
+  }
+
+  .myc-sidebar {
+    position: fixed;
+    inset: 0 25% 0 0;
+    z-index: 15;
+    background: #fafafa;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    padding-top: 3.5rem;
+  }
+
+  .myc-layout--nav-open .myc-sidebar {
+    transform: translateX(0);
+  }
+
+  .myc-layout--nav-open .myc-mobile-nav-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 10;
+  }
+
+  .myc-main {
+    padding-top: 3.5rem;
+  }
+
+  .myc-file-list__item,
+  .myc-button,
+  .myc-view-toggle,
+  .myc-reorder-button {
+    min-height: 44px;
+  }
+}
+
 .myc-vault-path {
   font-size: 0.75rem;
   color: #666;

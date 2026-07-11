@@ -18,13 +18,19 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        // Set PLAYWRIGHT_CHROMIUM_PATH to pin a specific Chromium binary
-        // (e.g. in a sandboxed environment with a pre-installed browser at a
-        // nonstandard path). Unset, Playwright uses its normal downloaded
-        // browser from `playwright install`.
-        launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH
-          ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
-          : {},
+        launchOptions: {
+          // Set PLAYWRIGHT_CHROMIUM_PATH to pin a specific Chromium binary
+          // (e.g. in a sandboxed environment with a pre-installed browser at
+          // a nonstandard path). Unset, Playwright uses its normal
+          // downloaded browser from `playwright install`.
+          ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+            ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
+            : {}),
+          // Chromium refuses to launch as root without this. Harmless here
+          // (an isolated, ephemeral test sandbox) - do not carry this into
+          // a real multi-tenant CI/shared machine running as root.
+          ...(process.getuid && process.getuid() === 0 ? { args: ["--no-sandbox"] } : {}),
+        },
       },
     },
   ],

@@ -31,6 +31,7 @@ export function App() {
   const [indexVersion, setIndexVersion] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
   const [distractionFree, setDistractionFree] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const vaultIndexRef = useRef(new VaultIndex());
   const frontmatterRef = useRef<Record<string, unknown>>({});
@@ -85,6 +86,7 @@ export function App() {
       setContent(parsed.body);
       setIsDirty(false);
       setViewMode("editor");
+      setMobileNavOpen(false);
     },
     [vault],
   );
@@ -239,7 +241,24 @@ export function App() {
   );
 
   return (
-    <div className={distractionFree ? "myc-layout myc-layout--focus" : "myc-layout"}>
+    <div
+      className={
+        "myc-layout" +
+        (distractionFree ? " myc-layout--focus" : "") +
+        (mobileNavOpen ? " myc-layout--nav-open" : "")
+      }
+    >
+      <button
+        type="button"
+        className="myc-mobile-nav-toggle"
+        onClick={() => setMobileNavOpen((open) => !open)}
+        aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
+      >
+        {mobileNavOpen ? "✕" : "☰"}
+      </button>
+      {mobileNavOpen ? (
+        <div className="myc-mobile-nav-scrim" onClick={() => setMobileNavOpen(false)} />
+      ) : null}
       <aside className="myc-sidebar">
         <Panel title="Vault">
           <Button onClick={() => void handleOpenVault()}>
