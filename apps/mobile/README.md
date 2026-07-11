@@ -78,3 +78,33 @@ necessarily lower here than for the other platforms:
 - ❌ Nothing here has run on an actual Android/iOS device or emulator.
   Before shipping, someone needs to open both native projects on their
   respective platforms and do a real click-through.
+
+## Capacitor vs. Tauri Mobile (Phase 7 reassessment)
+
+The original architecture plan flagged Tauri Mobile as "newer than
+desktop, revisit once it's had more time to mature" and asked that this
+be reassessed each cross-cutting-polish phase. Being honest about what
+this reassessment can and can't be: this session built Phases 0-7 back
+to back with no real-world time elapsing in between, so there is no new
+maturity signal to react to yet — re-reading the same release notes a
+few hours later wouldn't tell us anything Phase 0 didn't already know.
+Rather than manufacture a verdict, the honest position right now is:
+
+- **Stay on Capacitor for the current codebase.** It has both platforms
+  working end-to-end here (`cap add android`/`cap add ios` both produced
+  real, complete native projects, verified above), a mature plugin
+  ecosystem, and nothing about our usage (filesystem access, a wrapped
+  web bundle) pushes on its rough edges.
+- **Revisit this for real on a real calendar cadence** — e.g. whoever
+  picks this project back up in a few months, on a machine with Xcode
+  and/or the Android SDK, should spend an hour actually trying Tauri
+  Mobile against this same app-shell (it already runs, unmodified, in
+  Tauri's desktop shell, so the jump is smaller than it looks) and
+  compare bundle size, startup time, and plugin coverage against what's
+  here — not just check whether the GitHub release notes sound more
+  confident.
+- **The migration cost if we do switch later is bounded.** Only
+  `packages/fs-adapters`'s `CapacitorVaultAdapter` and `apps/mobile`'s
+  thin bootstrap are Capacitor-specific; `app-shell` and every other
+  package are already platform-agnostic, so swapping shells later is a
+  new adapter + a new `apps/*` entry, not a rewrite.

@@ -5,3 +5,5 @@ export { extractStructuredBlocks, upsertStructuredBlock } from "./structured-blo
 export type { StructuredBlock } from "./structured-blocks";
 export { parseNote, stringifyNote, deriveTitle } from "./parse-note";
 export type { ParsedNote } from "./parse-note";
+export { compileManuscript } from "./compile-manuscript";
+export type { ManuscriptChapter } from "./compile-manuscript";

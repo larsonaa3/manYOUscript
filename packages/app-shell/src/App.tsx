@@ -4,6 +4,7 @@ import { MarkdownEditor } from "@manyouscript/editor-core";
 import { GraphView, type GraphViewEdge, type GraphViewNode } from "@manyouscript/graph-view";
 import { VaultIndex, type LinkRecord, type FileRecord, type Manuscript } from "@manyouscript/index-db";
 import {
+  compileManuscript,
   deriveTitle,
   extractStructuredBlocks,
   parseNote,
@@ -13,8 +14,11 @@ import {
 import { isStatBlockSchemaId, STAT_BLOCK_REGISTRY } from "@manyouscript/rpg-schemas";
 import { Button, Panel } from "@manyouscript/ui";
 import { CharacterSheetForm } from "./CharacterSheetForm";
+import { QuickSwitcher } from "./QuickSwitcher";
 import { deriveIndexInputs } from "./derive-index-inputs";
 import { computeReorderSwap } from "./compute-reorder-swap";
+import { readStoredTheme, writeStoredTheme, resolveThemeAttribute, nextTheme, type Theme } from "./theme";
+import { downloadTextFile } from "./download-text-file";
 import "./styles.css";
 
 const SAVE_DEBOUNCE_MS = 500;
@@ -32,6 +36,9 @@ export function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
   const [distractionFree, setDistractionFree] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [theme, setTheme] = useState<Theme>(() => readStoredTheme(window.localStorage));
+  const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
+  const [printPreview, setPrintPreview] = useState<{ name: string; content: string } | null>(null);
 
   const vaultIndexRef = useRef(new VaultIndex());
   const frontmatterRef = useRef<Record<string, unknown>>({});
@@ -109,6 +116,27 @@ export function App() {
     return vaultIndexRef.current.getAllFiles().map((f) => f.title);
   }, []);
 
+  const performSave = useCallback(() => {
+    if (!selectedFile) {
+      return;
+    }
+    const raw = stringifyNote(frontmatterRef.current, content);
+    void vault.writeFile(selectedFile.path, raw).then(() => {
+      setIsDirty(false);
+      const { entitySchemaId, links } = deriveIndexInputs(parseNote(raw));
+      const record: FileRecord = {
+        path: selectedFile.path,
+        relativePath: selectedFile.relativePath,
+        title: deriveTitle(selectedFile.name, frontmatterRef.current),
+        frontmatter: frontmatterRef.current,
+        wordCount: countWords(content),
+        ...(entitySchemaId ? { entitySchemaId } : {}),
+      };
+      vaultIndexRef.current.setFile(record, links);
+      setIndexVersion((v) => v + 1);
+    });
+  }, [selectedFile, content, vault]);
+
   useEffect(() => {
     if (!selectedFile || !isDirty) {
       return;
@@ -116,29 +144,23 @@ export function App() {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
     }
-    saveTimerRef.current = setTimeout(() => {
-      const raw = stringifyNote(frontmatterRef.current, content);
-      void vault.writeFile(selectedFile.path, raw).then(() => {
-        setIsDirty(false);
-        const { entitySchemaId, links } = deriveIndexInputs(parseNote(raw));
-        const record: FileRecord = {
-          path: selectedFile.path,
-          relativePath: selectedFile.relativePath,
-          title: deriveTitle(selectedFile.name, frontmatterRef.current),
-          frontmatter: frontmatterRef.current,
-          wordCount: countWords(content),
-          ...(entitySchemaId ? { entitySchemaId } : {}),
-        };
-        vaultIndexRef.current.setFile(record, links);
-        setIndexVersion((v) => v + 1);
-      });
-    }, SAVE_DEBOUNCE_MS);
+    saveTimerRef.current = setTimeout(performSave, SAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
       }
     };
-  }, [content, isDirty, selectedFile, vault]);
+  }, [content, isDirty, selectedFile, performSave]);
+
+  const handleSaveNow = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (selectedFile && isDirty) {
+      performSave();
+    }
+  }, [selectedFile, isDirty, performSave]);
 
   const handleContentChange = useCallback((next: string) => {
     setContent(next);
@@ -220,6 +242,37 @@ export function App() {
     [selectedFile, content, vault, files, indexFile],
   );
 
+  const handleExportManuscript = useCallback(
+    async (manuscript: Manuscript, mode: "download" | "print") => {
+      const chapters = await Promise.all(
+        manuscript.chapters.map(async (chapter) => {
+          const raw = await vault.readFile(chapter.path);
+          return { title: chapter.title, body: parseNote(raw).body };
+        }),
+      );
+      const compiled = compileManuscript(manuscript.name, chapters);
+      if (mode === "download") {
+        downloadTextFile(`${manuscript.name}.md`, compiled);
+      } else {
+        setPrintPreview({ name: manuscript.name, content: compiled });
+      }
+    },
+    [vault],
+  );
+
+  useEffect(() => {
+    if (!printPreview) {
+      return;
+    }
+    const handleAfterPrint = () => setPrintPreview(null);
+    window.addEventListener("afterprint", handleAfterPrint);
+    const timer = setTimeout(() => window.print(), 100);
+    return () => {
+      window.removeEventListener("afterprint", handleAfterPrint);
+      clearTimeout(timer);
+    };
+  }, [printPreview]);
+
   const handleGraphNodeClick = useCallback(
     (node: GraphViewNode) => {
       const match = files.find((f) => f.path === node.id);
@@ -239,6 +292,41 @@ export function App() {
     },
     [files, handleSelectFile],
   );
+
+  useEffect(() => {
+    const attr = resolveThemeAttribute(theme);
+    if (attr) {
+      document.documentElement.dataset.theme = attr;
+    } else {
+      delete document.documentElement.dataset.theme;
+    }
+    writeStoredTheme(window.localStorage, theme);
+  }, [theme]);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme((current) => nextTheme(current));
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      const isModified = event.metaKey || event.ctrlKey;
+      if (!isModified) {
+        return;
+      }
+      if (event.key === "s") {
+        event.preventDefault();
+        handleSaveNow();
+      } else if (event.key === ".") {
+        event.preventDefault();
+        setDistractionFree((v) => !v);
+      } else if (event.key === "p") {
+        event.preventDefault();
+        setQuickSwitcherOpen(true);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSaveNow]);
 
   return (
     <div
@@ -261,6 +349,15 @@ export function App() {
       ) : null}
       <aside className="myc-sidebar">
         <Panel title="Vault">
+          <button
+            type="button"
+            className="myc-theme-toggle"
+            onClick={handleToggleTheme}
+            aria-label="Cycle theme (system / light / dark)"
+          >
+            Theme: {theme[0]!.toUpperCase()}
+            {theme.slice(1)}
+          </button>
           <Button onClick={() => void handleOpenVault()}>
             {vaultRoot ? "Change Folder" : "Open Vault Folder"}
           </Button>
@@ -329,6 +426,22 @@ export function App() {
                     </li>
                   ))}
                 </ul>
+                <div className="myc-manuscript__export">
+                  <button
+                    type="button"
+                    className="myc-view-toggle"
+                    onClick={() => void handleExportManuscript(manuscript, "download")}
+                  >
+                    Export .md
+                  </button>
+                  <button
+                    type="button"
+                    className="myc-view-toggle"
+                    onClick={() => void handleExportManuscript(manuscript, "print")}
+                  >
+                    Print / PDF
+                  </button>
+                </div>
               </div>
             ))}
           </Panel>
@@ -452,6 +565,21 @@ export function App() {
           />
         </Panel>
       </aside>
+      {quickSwitcherOpen ? (
+        <QuickSwitcher
+          files={files}
+          onSelect={(file) => {
+            setQuickSwitcherOpen(false);
+            void handleSelectFile(file);
+          }}
+          onClose={() => setQuickSwitcherOpen(false)}
+        />
+      ) : null}
+      {printPreview ? (
+        <div className="myc-print-view">
+          <MarkdownEditor value={printPreview.content} onChange={() => {}} editable={false} />
+        </div>
+      ) : null}
     </div>
   );
 }

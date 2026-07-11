@@ -156,4 +156,58 @@ describe("VaultIndex", () => {
     const [manuscript] = index.getManuscripts();
     expect(manuscript!.chapters.map((c) => c.relativePath)).toEqual(["a.md", "b.md"]);
   });
+
+  it("re-resolves other files' links when a file's title is renamed", () => {
+    const index = new VaultIndex();
+    index.setFile(file("/vault/aria.md", "Aria"), []);
+    index.setFile(file("/vault/chapter-one.md", "Chapter One"), ["Aria"]);
+    expect(index.getBacklinks("/vault/aria.md")).toHaveLength(1);
+
+    // Renaming Aria -> Ari should turn chapter-one's link into a ghost...
+    index.setFile(file("/vault/aria.md", "Ari"), []);
+    expect(index.getBacklinks("/vault/aria.md")).toHaveLength(0);
+    expect(index.findPathByTitle("Aria")).toBeNull();
+    const ghostGraph = index.getGraph();
+    expect(ghostGraph.nodes.some((n) => n.label === "Aria" && n.path === null)).toBe(true);
+
+    // ...and renaming chapter-one's link target to match should resolve it again.
+    index.setFile(file("/vault/chapter-one.md", "Chapter One"), ["Ari"]);
+    expect(index.getBacklinks("/vault/aria.md")).toEqual([
+      { sourcePath: "/vault/chapter-one.md", targetTitle: "Ari", targetPath: "/vault/aria.md", kind: "wikilink" },
+    ]);
+  });
+
+  it("resolving one file's links does not disturb an unrelated file's already-resolved links", () => {
+    const index = new VaultIndex();
+    index.setFile(file("/vault/aria.md", "Aria"), []);
+    index.setFile(file("/vault/riverbend.md", "Riverbend"), []);
+    index.setFile(file("/vault/a.md", "Note A"), ["Aria"]);
+    index.setFile(file("/vault/b.md", "Note B"), ["Riverbend"]);
+
+    // Editing Note A (no title change, same links) should leave Note B's
+    // already-resolved link to Riverbend untouched.
+    index.setFile(file("/vault/a.md", "Note A"), ["Aria"]);
+
+    expect(index.getBacklinks("/vault/riverbend.md")).toEqual([
+      { sourcePath: "/vault/b.md", targetTitle: "Riverbend", targetPath: "/vault/riverbend.md", kind: "wikilink" },
+    ]);
+  });
+
+  it("stays fast when updating one file in a vault with many unrelated files", () => {
+    const index = new VaultIndex();
+    const fileCount = 5000;
+    for (let i = 0; i < fileCount; i += 1) {
+      index.setFile(file(`/vault/note-${i}.md`, `Note ${i}`), [`Note ${(i + 1) % fileCount}`]);
+    }
+
+    const start = performance.now();
+    index.setFile(file("/vault/note-0.md", "Note 0 Updated"), [`Note 1`]);
+    const elapsedMs = performance.now() - start;
+
+    // An O(total links) re-resolve of 5000 files would be far slower than
+    // this; a generous bound keeps the test from being flaky while still
+    // catching a regression back to full-vault re-resolution.
+    expect(elapsedMs).toBeLessThan(200);
+    expect(index.findPathByTitle("Note 0 Updated")).toBe("/vault/note-0.md");
+  });
 });
