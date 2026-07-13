@@ -1,9 +1,9 @@
 {
   "name": "manyouscript",
   "private": true,
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.12.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "build": "turbo run build",
@@ -16,8 +16,5 @@
     "@types/wicg-file-system-access": "^2023.10.7",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["better-sqlite3", "esbuild"]
   }
 }

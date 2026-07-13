@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:bcryptjs --external:better-sqlite3 --external:better-sqlite3-session-store --external:cors --external:dotenv --external:express --external:express-session --external:passport --external:passport-local --external:zod",
+    "build": "node build.mjs",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -35,7 +35,7 @@
     "@types/supertest": "^6.0.2",
     "esbuild": "^0.24.2",
     "supertest": "^7.0.0",
-    "tsx": "^4.19.2",
+    "tsx": "4.22.5",
     "typescript": "^5.7.2",
     "vitest": "^4.1.10"
   }
