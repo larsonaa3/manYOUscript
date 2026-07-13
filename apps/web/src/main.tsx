@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "@manyouscript/app-shell";
+import { App, LoginGate } from "@manyouscript/app-shell";
+import { AuthProvider } from "@manyouscript/auth-client";
 import { VaultProvider } from "@manyouscript/data-layer";
 import { createWebVaultAdapter, isFileSystemAccessSupported } from "@manyouscript/fs-adapters";
 import "./index.css";
@@ -17,8 +18,12 @@ createRoot(document.getElementById("root") as HTMLElement).render(
         or use the desktop app for live sync.
       </div>
     ) : null}
-    <VaultProvider adapter={vaultAdapter}>
-      <App />
-    </VaultProvider>
+    <AuthProvider>
+      <LoginGate>
+        <VaultProvider adapter={vaultAdapter}>
+          <App />
+        </VaultProvider>
+      </LoginGate>
+    </AuthProvider>
   </StrictMode>,
 );

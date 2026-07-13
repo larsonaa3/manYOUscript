@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+import { mockAuthenticatedSession } from "./helpers/auth";
+
+test.beforeEach(async ({ page }) => {
+  await mockAuthenticatedSession(page);
+});
 
 test("boots, detects File System Access support, and shows no degraded-browser banner", async ({ page }) => {
   await page.goto("/");

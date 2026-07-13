@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
+import { mockAuthenticatedSession } from "./helpers/auth";
 
 async function makeDemoVault(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "myc-e2e-vault-"));
@@ -19,6 +20,10 @@ async function makeDemoVault(): Promise<string> {
 }
 
 test.describe("Phase 7: theme, quick switcher, export", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAuthenticatedSession(page);
+  });
+
   test("theme toggle cycles system -> light -> dark and persists across reload", async ({ page }) => {
     await page.goto("/");
 

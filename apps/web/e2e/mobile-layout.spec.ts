@@ -1,10 +1,15 @@
 import { test, expect } from "@playwright/test";
+import { mockAuthenticatedSession } from "./helpers/auth";
 
 // Pick just the properties relevant to testing our CSS breakpoint,
 // rather than spreading the whole devices["iPhone 13"] preset - that
 // preset also sets defaultBrowserType: "webkit", which conflicts with
 // this project's fixed Chromium-only setup.
 test.use({ viewport: { width: 390, height: 664 }, isMobile: true, hasTouch: true });
+
+test.beforeEach(async ({ page }) => {
+  await mockAuthenticatedSession(page);
+});
 
 test("at a phone viewport, the sidebar is a hidden drawer opened via the hamburger toggle", async ({ page }) => {
   await page.goto("/");

@@ -16,5 +16,8 @@
     "@types/wicg-file-system-access": "^2023.10.7",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3", "esbuild"]
   }
 }

@@ -1,0 +1,118 @@
+# Deploy manYOUscript's web build (and, on one of two paths, the auth API)
+# to Hostinger.
+#
+# STATUS: sketch, not yet a verified pipeline. Whether Hostinger's shared
+# hosting plan includes "Setup Node.js App" (hPanel > Advanced, Passenger-
+# based, Business/Cloud tiers) is unconfirmed. Check that before relying on
+# this:
+#   - If it's there: Path A (default on every push to main) deploys both the
+#     static site and the compiled server to Hostinger.
+#   - If it's not: run this workflow manually (Actions tab > Run workflow)
+#     with "deploy_target" set to "render" instead - the static site still
+#     goes to Hostinger, but the API deploys to Render's free tier.
+# Every step below marked TODO is an assumption that needs confirming in
+# hPanel before this can be trusted for a real deploy.
+#
+# Required repository secrets (names only - set actual values in
+# Settings > Secrets and variables > Actions):
+#   FTP_HOST, FTP_USERNAME, FTP_PASSWORD  - Hostinger FTP/SFTP credentials
+#   RENDER_DEPLOY_HOOK_URL                - Path B only, from Render's dashboard
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Where should apps/server deploy?"
+        required: true
+        default: "hostinger-node"
+        type: choice
+        options:
+          - hostinger-node
+          - render
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-dist
+          path: apps/server/dist
+
+  deploy-static:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web-dist
+      # TODO(hPanel): confirm public_html is the right target for your
+      # domain/subdomain before relying on this.
+      - name: Deploy static site to Hostinger public_html
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./web-dist/
+          server-dir: ./public_html/
+
+  # Path A: Hostinger's own Node.js hosting. Default on push; explicit via
+  # workflow_dispatch.
+  deploy-server-hostinger:
+    if: ${{ github.event_name == 'push' || github.event.inputs.deploy_target == 'hostinger-node' }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-dist
+          path: server-dist
+      # TODO(hPanel): confirm the exact Application Root hPanel expects, and
+      # whether the SQLite data directory (apps/server/data/ locally) lives
+      # outside this deploy path so a redeploy doesn't wipe user accounts.
+      - name: Deploy server bundle to Hostinger Node.js app
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./server-dist/
+          server-dir: ./manyouscript-server/
+      # TODO(hPanel): confirm the restart mechanism - conventionally a
+      # tmp/restart.txt touch-file for Passenger-based Node hosting, but
+      # unverified for Hostinger specifically.
+      - name: Restart Passenger app (unverified - confirm in hPanel first)
+        run: echo "TODO: confirm Hostinger's Node app restart mechanism before enabling this step"
+
+  # Path B: static site stays on Hostinger, API deploys to Render. Only
+  # runs when explicitly selected via workflow_dispatch.
+  deploy-server-render:
+    if: ${{ github.event.inputs.deploy_target == 'render' }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # Render's own GitHub integration handles the actual build/deploy;
+      # this just pings the deploy hook once our build+test has passed on
+      # this commit. Configure the service and hook URL in Render's dashboard.
+      - name: Trigger Render deploy hook
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"

@@ -1,5 +1,5 @@
 {
-  "name": "@manyouscript/app-shell",
+  "name": "@manyouscript/auth-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,21 +10,17 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@manyouscript/auth-client": "workspace:*",
-    "@manyouscript/data-layer": "workspace:*",
-    "@manyouscript/editor-core": "workspace:*",
-    "@manyouscript/graph-view": "workspace:*",
-    "@manyouscript/index-db": "workspace:*",
-    "@manyouscript/markdown-io": "workspace:*",
-    "@manyouscript/rpg-schemas": "workspace:*",
-    "@manyouscript/ui": "workspace:*"
+    "@manyouscript/auth-schemas": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.3.1"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.1.0",
     "@types/react": "^18.3.12",
+    "jsdom": "^29.1.1",
     "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "^5.7.2",
     "vitest": "^4.1.10"
   }

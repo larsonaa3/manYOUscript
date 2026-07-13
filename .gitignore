@@ -9,3 +9,4 @@ apps/desktop/src-tauri/target/
 .env.local
 test-results/
 playwright-report/
+apps/server/data/

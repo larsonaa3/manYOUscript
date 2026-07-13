@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@manyouscript/app-shell": "workspace:*",
+    "@manyouscript/auth-client": "workspace:*",
     "@manyouscript/data-layer": "workspace:*",
     "@manyouscript/fs-adapters": "workspace:*",
     "@manyouscript/ui": "workspace:*",
