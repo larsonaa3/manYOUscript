@@ -1,0 +1,69 @@
+# Deploys apps/web (static build only) to GitHub Pages on every push, so
+# you can see live updates without needing Hostinger at all.
+#
+# GitHub Pages can only serve static files - it cannot run apps/server (the
+# Express/Passport/SQLite login API). For the login gate to actually work
+# on this deployment, apps/server needs to run somewhere else reachable
+# over HTTPS (e.g. Render's free tier) and its public URL needs to be set
+# as the RENDER_API_URL repository variable below (Settings > Secrets and
+# variables > Actions > Variables). Until that's set, VITE_API_URL is
+# empty, so the login gate's /api calls will fail against this static site
+# (calls resolve to relative /api/... paths with nothing there to answer).
+#
+# One-time setup required (can't be done from this workflow file):
+#   1. Settings > Pages > Source: "GitHub Actions" (not a branch).
+#   2. Create a Render Web Service pointed at apps/server (root directory
+#      apps/server, build command `npm install`, start command
+#      `node dist/index.js` after running `node build.mjs` - or simplest,
+#      build command `npm install && node build.mjs`), with env vars
+#      SESSION_SECRET (random string), CORS_ORIGIN (this Pages URL, e.g.
+#      https://larsonaa3.github.io), NODE_ENV=production.
+#   3. Set repository variable RENDER_API_URL to that Render service's URL.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main, claude/novel-rpg-writing-app-fy6sk8]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build apps/web for GitHub Pages
+        env:
+          VITE_BASE_PATH: /manYOUscript/
+          VITE_API_URL: ${{ vars.RENDER_API_URL }}
+        run: pnpm --filter @manyouscript/web build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
