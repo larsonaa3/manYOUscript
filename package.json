@@ -6,7 +6,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "turbo run build",
+    "postinstall": "node scripts/fix-bin-permissions.mjs",
+    "build": "node scripts/fix-bin-permissions.mjs && turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
