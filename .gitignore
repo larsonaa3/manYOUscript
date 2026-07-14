@@ -10,3 +10,4 @@ apps/desktop/src-tauri/target/
 test-results/
 playwright-report/
 apps/server/data/
+/data/
