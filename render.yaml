@@ -1,0 +1,27 @@
+# Render Blueprint for apps/server. Use "New > Blueprint" in the Render
+# dashboard and point it at this repo to provision the service with these
+# settings automatically, instead of hand-typing build/start commands.
+#
+# CORS_ORIGIN still needs to be set manually after the service is created
+# (Render dashboard > this service > Environment) - it's your GitHub Pages
+# URL, e.g. https://larsonaa3.github.io. It's marked sync:false below
+# because it depends on your Pages URL, which this file can't know.
+services:
+  - type: web
+    name: manyouscript-server
+    runtime: node
+    plan: free
+    buildCommand: >-
+      corepack enable &&
+      corepack prepare pnpm@11.12.0 --activate &&
+      pnpm install --frozen-lockfile &&
+      node scripts/fix-bin-permissions.mjs &&
+      pnpm --filter @manyouscript/server build
+    startCommand: node apps/server/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
