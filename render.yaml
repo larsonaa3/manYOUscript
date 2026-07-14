@@ -2,6 +2,11 @@
 # dashboard and point it at this repo to provision the service with these
 # settings automatically, instead of hand-typing build/start commands.
 #
+# Uses `npx pnpm@11.12.0` rather than `corepack enable`: Render's build
+# container has a read-only /usr/bin, and corepack enable tries to write
+# global pnpm/pnpx/yarn shims there, failing with EROFS. npx runs pnpm
+# without touching any system directory.
+#
 # CORS_ORIGIN still needs to be set manually after the service is created
 # (Render dashboard > this service > Environment) - it's your GitHub Pages
 # URL, e.g. https://larsonaa3.github.io. It's marked sync:false below
@@ -12,11 +17,9 @@ services:
     runtime: node
     plan: free
     buildCommand: >-
-      corepack enable &&
-      corepack prepare pnpm@11.12.0 --activate &&
-      pnpm install --frozen-lockfile &&
+      npx --yes pnpm@11.12.0 install --frozen-lockfile &&
       node scripts/fix-bin-permissions.mjs &&
-      pnpm --filter @manyouscript/server build
+      npx --yes pnpm@11.12.0 --filter @manyouscript/server build
     startCommand: node apps/server/dist/index.js
     envVars:
       - key: NODE_ENV
