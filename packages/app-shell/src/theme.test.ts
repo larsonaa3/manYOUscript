@@ -35,13 +35,14 @@ describe("writeStoredTheme", () => {
 });
 
 describe("resolveThemeAttribute", () => {
-  it("passes light/dark through unchanged", () => {
-    expect(resolveThemeAttribute("light")).toBe("light");
-    expect(resolveThemeAttribute("dark")).toBe("dark");
+  it("passes light/dark through unchanged regardless of system preference", () => {
+    expect(resolveThemeAttribute("light", true)).toBe("light");
+    expect(resolveThemeAttribute("dark", false)).toBe("dark");
   });
 
-  it("returns null for system so the prefers-color-scheme media query decides", () => {
-    expect(resolveThemeAttribute("system")).toBeNull();
+  it("resolves system to the OS-level preference", () => {
+    expect(resolveThemeAttribute("system", true)).toBe("dark");
+    expect(resolveThemeAttribute("system", false)).toBe("light");
   });
 });
 

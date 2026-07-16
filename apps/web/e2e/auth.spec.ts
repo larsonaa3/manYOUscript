@@ -55,4 +55,24 @@ test.describe("login gate", () => {
     await expect(page.locator(".myc-login-form__error")).toHaveText("Invalid username or password");
     await expect(page.getByRole("button", { name: "Open Vault Folder" })).toHaveCount(0);
   });
+
+  test("a stored dark theme preference applies to the login screen itself, before authentication", async ({
+    page,
+  }) => {
+    // Regression test: theme resolution used to live inside App(), which
+    // never mounts while unauthenticated - the login screen silently had no
+    // theme applied at all. ThemeProvider now wraps LoginGate specifically
+    // to fix this.
+    await page.addInitScript(() => {
+      window.localStorage.setItem("manyouscript-theme", "dark");
+    });
+    await page.route("**/api/me", (route) => {
+      route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "Not authenticated" }) });
+    });
+
+    await page.goto("/");
+
+    await expect(page.locator(".myc-login-gate")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+  });
 });

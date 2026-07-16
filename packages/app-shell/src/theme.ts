@@ -13,9 +13,12 @@ export function writeStoredTheme(storage: Pick<Storage, "setItem">, theme: Theme
   storage.setItem(THEME_STORAGE_KEY, theme);
 }
 
-/** "system" means "let the prefers-color-scheme media query decide" - no explicit attribute. */
-export function resolveThemeAttribute(theme: Theme): "light" | "dark" | null {
-  return theme === "system" ? null : theme;
+/** "system" resolves to the OS-level preference, passed in so this stays a pure, testable function. */
+export function resolveThemeAttribute(theme: Theme, systemPrefersDark: boolean): "light" | "dark" {
+  if (theme === "system") {
+    return systemPrefersDark ? "dark" : "light";
+  }
+  return theme;
 }
 
 export function nextTheme(current: Theme): Theme {

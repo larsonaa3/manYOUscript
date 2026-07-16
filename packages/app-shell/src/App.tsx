@@ -19,7 +19,7 @@ import { FileTree } from "./FileTree";
 import { buildFileTree } from "./file-tree";
 import { deriveIndexInputs } from "./derive-index-inputs";
 import { computeReorderSwap } from "./compute-reorder-swap";
-import { readStoredTheme, writeStoredTheme, resolveThemeAttribute, nextTheme, type Theme } from "./theme";
+import { useTheme } from "./ThemeProvider";
 import { downloadTextFile } from "./download-text-file";
 import "./styles.css";
 
@@ -38,7 +38,7 @@ export function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
   const [distractionFree, setDistractionFree] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [theme, setTheme] = useState<Theme>(() => readStoredTheme(window.localStorage));
+  const { theme, toggleTheme } = useTheme();
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [printPreview, setPrintPreview] = useState<{ name: string; content: string } | null>(null);
 
@@ -298,20 +298,6 @@ export function App() {
   );
 
   useEffect(() => {
-    const attr = resolveThemeAttribute(theme);
-    if (attr) {
-      document.documentElement.dataset.theme = attr;
-    } else {
-      delete document.documentElement.dataset.theme;
-    }
-    writeStoredTheme(window.localStorage, theme);
-  }, [theme]);
-
-  const handleToggleTheme = useCallback(() => {
-    setTheme((current) => nextTheme(current));
-  }, []);
-
-  useEffect(() => {
     function handleKeyDown(event: globalThis.KeyboardEvent) {
       const isModified = event.metaKey || event.ctrlKey;
       if (!isModified) {
@@ -356,7 +342,7 @@ export function App() {
           <button
             type="button"
             className="myc-theme-toggle"
-            onClick={handleToggleTheme}
+            onClick={toggleTheme}
             aria-label="Cycle theme (system / light / dark)"
           >
             Theme: {theme[0]!.toUpperCase()}
