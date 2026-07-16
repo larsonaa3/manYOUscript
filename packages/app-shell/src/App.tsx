@@ -15,6 +15,8 @@ import { isStatBlockSchemaId, STAT_BLOCK_REGISTRY } from "@manyouscript/rpg-sche
 import { Button, Panel } from "@manyouscript/ui";
 import { CharacterSheetForm } from "./CharacterSheetForm";
 import { QuickSwitcher } from "./QuickSwitcher";
+import { FileTree } from "./FileTree";
+import { buildFileTree } from "./file-tree";
 import { deriveIndexInputs } from "./derive-index-inputs";
 import { computeReorderSwap } from "./compute-reorder-swap";
 import { readStoredTheme, writeStoredTheme, resolveThemeAttribute, nextTheme, type Theme } from "./theme";
@@ -216,6 +218,8 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indexVersion]);
 
+  const fileTree = useMemo(() => buildFileTree(files), [files]);
+
   const handleReorderChapter = useCallback(
     async (chapters: FileRecord[], index: number, direction: -1 | 1) => {
       const steps = computeReorderSwap(chapters, index, direction);
@@ -362,23 +366,11 @@ export function App() {
             {vaultRoot ? "Change Folder" : "Open Vault Folder"}
           </Button>
           {vaultRoot ? <p className="myc-vault-path">{vaultRoot}</p> : null}
-          <ul className="myc-file-list">
-            {files.map((file) => (
-              <li key={file.path}>
-                <button
-                  type="button"
-                  className={
-                    file.path === selectedFile?.path
-                      ? "myc-file-list__item myc-file-list__item--active"
-                      : "myc-file-list__item"
-                  }
-                  onClick={() => void handleSelectFile(file)}
-                >
-                  {file.relativePath}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <FileTree
+            nodes={fileTree}
+            selectedPath={selectedFile?.path}
+            onSelectFile={(file) => void handleSelectFile(file)}
+          />
         </Panel>
         {manuscripts.length > 0 ? (
           <Panel title="Manuscripts">

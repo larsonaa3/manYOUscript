@@ -229,6 +229,17 @@ body {
   background: var(--myc-active-bg);
 }
 
+.myc-file-tree__folder {
+  font-weight: 600;
+  color: var(--myc-text-muted);
+}
+
+.myc-file-tree__caret {
+  display: inline-block;
+  width: 1rem;
+  font-size: 0.7rem;
+}
+
 .myc-editor-header {
   display: flex;
   justify-content: space-between;
