@@ -43,6 +43,8 @@
   --myc-radius-md: 4px;
   --myc-radius-lg: 6px;
   --myc-radius-xl: 8px;
+
+  --myc-icon-size: 1rem;
 }
 
 /*
@@ -273,6 +275,12 @@ body {
 .myc-panel__title {
   font-weight: 600;
   margin-bottom: var(--myc-space-2);
+}
+
+.myc-icon {
+  width: var(--myc-icon-size);
+  height: var(--myc-icon-size);
+  flex-shrink: 0;
 }
 
 .myc-right-sidebar {
