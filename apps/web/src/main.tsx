@@ -4,6 +4,7 @@ import { App, LoginGate, ThemeProvider } from "@manyouscript/app-shell";
 import { AuthProvider } from "@manyouscript/auth-client";
 import { VaultProvider } from "@manyouscript/data-layer";
 import { createWebVaultAdapter, isFileSystemAccessSupported } from "@manyouscript/fs-adapters";
+import { ToastProvider } from "@manyouscript/ui";
 import "./index.css";
 
 const vaultAdapter = createWebVaultAdapter();
@@ -19,13 +20,15 @@ createRoot(document.getElementById("root") as HTMLElement).render(
       </div>
     ) : null}
     <ThemeProvider>
-      <AuthProvider>
-        <LoginGate>
-          <VaultProvider adapter={vaultAdapter}>
-            <App />
-          </VaultProvider>
-        </LoginGate>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <LoginGate>
+            <VaultProvider adapter={vaultAdapter}>
+              <App />
+            </VaultProvider>
+          </LoginGate>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   </StrictMode>,
 );

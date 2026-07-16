@@ -12,7 +12,7 @@ import {
   upsertStructuredBlock,
 } from "@manyouscript/markdown-io";
 import { isStatBlockSchemaId, STAT_BLOCK_REGISTRY } from "@manyouscript/rpg-schemas";
-import { Button, Panel } from "@manyouscript/ui";
+import { Button, Panel, useToast } from "@manyouscript/ui";
 import { CharacterSheetForm } from "./CharacterSheetForm";
 import { QuickSwitcher } from "./QuickSwitcher";
 import { FileTree } from "./FileTree";
@@ -39,6 +39,7 @@ export function App() {
   const [distractionFree, setDistractionFree] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { showToast } = useToast();
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [printPreview, setPrintPreview] = useState<{ name: string; content: string } | null>(null);
 
@@ -123,21 +124,29 @@ export function App() {
       return;
     }
     const raw = stringifyNote(frontmatterRef.current, content);
-    void vault.writeFile(selectedFile.path, raw).then(() => {
-      setIsDirty(false);
-      const { entitySchemaId, links } = deriveIndexInputs(parseNote(raw));
-      const record: FileRecord = {
-        path: selectedFile.path,
-        relativePath: selectedFile.relativePath,
-        title: deriveTitle(selectedFile.name, frontmatterRef.current),
-        frontmatter: frontmatterRef.current,
-        wordCount: countWords(content),
-        ...(entitySchemaId ? { entitySchemaId } : {}),
-      };
-      vaultIndexRef.current.setFile(record, links);
-      setIndexVersion((v) => v + 1);
-    });
-  }, [selectedFile, content, vault]);
+    void vault
+      .writeFile(selectedFile.path, raw)
+      .then(() => {
+        setIsDirty(false);
+        const { entitySchemaId, links } = deriveIndexInputs(parseNote(raw));
+        const record: FileRecord = {
+          path: selectedFile.path,
+          relativePath: selectedFile.relativePath,
+          title: deriveTitle(selectedFile.name, frontmatterRef.current),
+          frontmatter: frontmatterRef.current,
+          wordCount: countWords(content),
+          ...(entitySchemaId ? { entitySchemaId } : {}),
+        };
+        vaultIndexRef.current.setFile(record, links);
+        setIndexVersion((v) => v + 1);
+      })
+      .catch((error: unknown) => {
+        // Previously silent: a failed write left isDirty stuck on "saving…"
+        // with no other signal that anything went wrong.
+        const message = error instanceof Error ? error.message : "Unknown error";
+        showToast(`Couldn't save ${selectedFile.relativePath}: ${message}`, "error");
+      });
+  }, [selectedFile, content, vault, showToast]);
 
   useEffect(() => {
     if (!selectedFile || !isDirty) {

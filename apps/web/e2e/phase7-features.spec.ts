@@ -62,6 +62,23 @@ test.describe("Phase 7: theme, quick switcher, export", () => {
     await page.keyboard.up("Control");
     await expect(page.locator(".myc-quick-switcher")).toBeVisible();
 
+    // Dismiss behavior now routes through the shared Modal primitive rather
+    // than QuickSwitcher's own local handling - verify both paths work.
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".myc-quick-switcher")).toHaveCount(0);
+
+    await page.keyboard.down("Control");
+    await page.keyboard.press("p");
+    await page.keyboard.up("Control");
+    await expect(page.locator(".myc-quick-switcher")).toBeVisible();
+    await page.locator(".myc-modal-scrim").click({ position: { x: 10, y: 10 } });
+    await expect(page.locator(".myc-quick-switcher")).toHaveCount(0);
+
+    await page.keyboard.down("Control");
+    await page.keyboard.press("p");
+    await page.keyboard.up("Control");
+    await expect(page.locator(".myc-quick-switcher")).toBeVisible();
+
     await page.keyboard.type("note-b");
     await expect(page.locator(".myc-quick-switcher__item")).toHaveCount(1);
     await page.keyboard.press("Enter");

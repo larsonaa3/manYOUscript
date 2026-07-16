@@ -549,7 +549,7 @@ body {
   }
 }
 
-.myc-quick-switcher-overlay {
+.myc-modal-scrim {
   position: fixed;
   inset: 0;
   background: var(--myc-scrim);
@@ -559,7 +559,7 @@ body {
   padding-top: 12vh;
 }
 
-.myc-quick-switcher {
+.myc-modal {
   width: min(480px, 90vw);
   max-height: 60vh;
   background: var(--myc-bg-elevated);
@@ -568,6 +568,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  outline: none;
 }
 
 .myc-quick-switcher__input {
@@ -608,6 +609,38 @@ body {
   padding: var(--myc-space-3);
   color: var(--myc-text-faint);
   font-size: var(--myc-font-size-md);
+}
+
+.myc-toast-container {
+  position: fixed;
+  bottom: var(--myc-space-4);
+  right: var(--myc-space-4);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: var(--myc-space-2);
+  max-width: min(320px, calc(100vw - 2 * var(--myc-space-4)));
+}
+
+.myc-toast {
+  padding: var(--myc-space-3) var(--myc-space-4);
+  border-radius: var(--myc-radius-lg);
+  box-shadow: 0 4px 16px var(--myc-shadow);
+  font-size: var(--myc-font-size-md);
+  color: var(--myc-accent-contrast);
+  background: var(--myc-text-muted);
+}
+
+.myc-toast--info {
+  background: var(--myc-accent);
+}
+
+.myc-toast--success {
+  background: #2f9e5e;
+}
+
+.myc-toast--error {
+  background: var(--myc-danger);
 }
 
 .myc-theme-toggle {

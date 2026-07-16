@@ -4,3 +4,7 @@ export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
 export { Icon } from "./Icon";
 export type { IconProps } from "./Icon";
+export { Modal } from "./Modal";
+export type { ModalProps } from "./Modal";
+export { ToastProvider, useToast } from "./Toast";
+export type { ToastContextValue, ToastVariant, ToastProviderProps } from "./Toast";
