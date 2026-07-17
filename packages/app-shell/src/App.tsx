@@ -45,6 +45,7 @@ export function App() {
   const { showToast } = useToast();
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [printPreview, setPrintPreview] = useState<{ name: string; content: string } | null>(null);
+  const [pendingReconnect, setPendingReconnect] = useState<string | null>(null);
 
   const vaultIndexRef = useRef(new VaultIndex());
   const frontmatterRef = useRef<Record<string, unknown>>({});
@@ -87,22 +88,57 @@ export function App() {
       return;
     }
     setVaultRoot(root);
+    setPendingReconnect(null);
     await refreshFiles(root);
-    writeStoredVaultRoot(localStorage, root);
+    // Adapters with their own handle-based restore (the browser File
+    // System Access API) persist it themselves in pickVaultRoot; this
+    // plain-string path is only meaningful for adapters (Tauri/Capacitor)
+    // that can silently reopen a root path with no user gesture.
+    if (!vault.tryRestoreVaultRoot) {
+      writeStoredVaultRoot(localStorage, root);
+    }
+  }, [vault, refreshFiles]);
+
+  const handleReconnect = useCallback(async () => {
+    if (!vault.reconnectVaultRoot) {
+      return;
+    }
+    const root = await vault.reconnectVaultRoot();
+    if (!root) {
+      return;
+    }
+    setPendingReconnect(null);
+    setVaultRoot(root);
+    await refreshFiles(root);
   }, [vault, refreshFiles]);
 
   useEffect(() => {
-    const storedRoot = readStoredVaultRoot(localStorage);
-    if (!storedRoot) {
-      return;
-    }
-    // Only Tauri/Capacitor can silently re-open a root path with no user
-    // gesture - the browser File System Access API needs a fresh handle
-    // from pickVaultRoot(), so listMarkdownFiles throws here and this
-    // just falls back to the normal "Open Vault Folder" empty state.
-    refreshFiles(storedRoot)
-      .then(() => setVaultRoot(storedRoot))
-      .catch(() => clearStoredVaultRoot(localStorage));
+    void (async () => {
+      const storedRoot = readStoredVaultRoot(localStorage);
+      if (storedRoot) {
+        // Only Tauri/Capacitor can silently re-open a root path with no
+        // user gesture - the browser File System Access API needs a
+        // fresh handle, so listMarkdownFiles throws here and this falls
+        // through to the handle-based restore below instead.
+        try {
+          await refreshFiles(storedRoot);
+          setVaultRoot(storedRoot);
+          return;
+        } catch {
+          clearStoredVaultRoot(localStorage);
+        }
+      }
+      if (!vault.tryRestoreVaultRoot) {
+        return;
+      }
+      const result = await vault.tryRestoreVaultRoot();
+      if (result.status === "restored") {
+        setVaultRoot(result.root);
+        await refreshFiles(result.root);
+      } else if (result.status === "needs-permission") {
+        setPendingReconnect(result.name);
+      }
+    })();
     // Mount-only: this restores whatever vault was open last session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -395,6 +431,9 @@ export function App() {
             Theme: {theme[0]!.toUpperCase()}
             {theme.slice(1)}
           </button>
+          {pendingReconnect && !vaultRoot ? (
+            <Button onClick={() => void handleReconnect()}>Reconnect to &quot;{pendingReconnect}&quot;</Button>
+          ) : null}
           <Button onClick={() => void handleOpenVault()}>
             {vaultRoot ? "Change Folder" : "Open Vault Folder"}
           </Button>
