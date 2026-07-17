@@ -7,10 +7,14 @@
 # global pnpm/pnpx/yarn shims there, failing with EROFS. npx runs pnpm
 # without touching any system directory.
 #
-# CORS_ORIGIN still needs to be set manually after the service is created
-# (Render dashboard > this service > Environment) - it's your GitHub Pages
-# URL, e.g. https://larsonaa3.github.io. It's marked sync:false below
-# because it depends on your Pages URL, which this file can't know.
+# CORS_ORIGIN and DATABASE_URL still need to be set manually after the
+# service is created (Render dashboard > this service > Environment):
+# - CORS_ORIGIN is your GitHub Pages URL, e.g. https://larsonaa3.github.io.
+# - DATABASE_URL is a Postgres connection string from a managed provider
+#   (e.g. Neon: https://neon.tech) - Render's free web-service disk is
+#   ephemeral and wiped on every deploy, so the users table needs to live
+#   somewhere durable. Both are marked sync:false because this file can't
+#   know their values.
 services:
   - type: web
     name: manyouscript-server
@@ -27,4 +31,6 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: CORS_ORIGIN
+        sync: false
+      - key: DATABASE_URL
         sync: false

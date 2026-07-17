@@ -1,5 +1,5 @@
 import { Strategy as LocalStrategy } from "passport-local";
-import type Database from "better-sqlite3";
+import type { Pool } from "pg";
 import { verifyPassword } from "../lib/password";
 import type { UserRow } from "../db";
 import type { AuthGate } from "./types";
@@ -12,14 +12,13 @@ import type { AuthGate } from "./types";
  * that multiple createServer() calls (e.g. one per test) don't accumulate
  * duplicate serializers/deserializers on shared global state.
  */
-export function configurePassport(db: Database.Database, passport: AuthGate): void {
+export function configurePassport(db: Pool, passport: AuthGate): void {
   passport.use(
     new LocalStrategy((username, password, done) => {
       void (async () => {
         try {
-          const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as
-            | UserRow
-            | undefined;
+          const result = await db.query<UserRow>("SELECT * FROM users WHERE username = $1", [username]);
+          const user = result.rows[0];
           if (!user || !user.password_hash) {
             done(null, false, { message: "Invalid username or password" });
             return;
@@ -42,11 +41,13 @@ export function configurePassport(db: Database.Database, passport: AuthGate): vo
   });
 
   passport.deserializeUser<number>((id, done) => {
-    try {
-      const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;
-      done(null, user ?? false);
-    } catch (err) {
-      done(err as Error);
-    }
+    void (async () => {
+      try {
+        const result = await db.query<UserRow>("SELECT * FROM users WHERE id = $1", [id]);
+        done(null, result.rows[0] ?? false);
+      } catch (err) {
+        done(err as Error);
+      }
+    })();
   });
 }

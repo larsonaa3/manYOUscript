@@ -13,8 +13,8 @@ await esbuild.build({
   outfile: "dist/index.js",
   external: [
     "bcryptjs",
-    "better-sqlite3",
-    "better-sqlite3-session-store",
+    "pg",
+    "connect-pg-simple",
     "cors",
     "dotenv",
     "express",

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type Database from "better-sqlite3";
+import type { Pool } from "pg";
 import { RegisterPayloadSchema, CredentialsSchema, type PublicUser } from "@manyouscript/auth-schemas";
 import { hashPassword } from "../lib/password";
 import type { UserRow } from "../db";
@@ -9,7 +9,7 @@ function toPublicUser(row: UserRow): PublicUser {
   return { id: row.id, username: row.username, email: row.email };
 }
 
-export function createAuthRouter(db: Database.Database, passport: AuthGate): Router {
+export function createAuthRouter(db: Pool, passport: AuthGate): Router {
   const router = Router();
 
   router.post("/register", (req, res, next) => {
@@ -20,19 +20,20 @@ export function createAuthRouter(db: Database.Database, passport: AuthGate): Rou
     }
     const { username, password, email } = parsed.data;
 
-    const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
-    if (existing) {
-      res.status(409).json({ error: "Username already taken" });
-      return;
-    }
-
     void (async () => {
       try {
+        const existing = await db.query("SELECT id FROM users WHERE username = $1", [username]);
+        if (existing.rows.length > 0) {
+          res.status(409).json({ error: "Username already taken" });
+          return;
+        }
+
         const passwordHash = await hashPassword(password);
-        const info = db
-          .prepare("INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)")
-          .run(username, passwordHash, email ?? null);
-        const row = db.prepare("SELECT * FROM users WHERE id = ?").get(info.lastInsertRowid) as UserRow;
+        const inserted = await db.query<UserRow>(
+          "INSERT INTO users (username, password_hash, email) VALUES ($1, $2, $3) RETURNING *",
+          [username, passwordHash, email ?? null],
+        );
+        const row = inserted.rows[0]!;
 
         req.login(row, (err) => {
           if (err) {

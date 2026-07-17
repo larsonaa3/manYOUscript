@@ -2,13 +2,13 @@ import { describe, expect, it, beforeEach } from "vitest";
 import request from "supertest";
 import type { Express } from "express";
 import { createServer } from "../app";
-import { createDb } from "../db";
+import { createTestPool } from "../test/pg-mem-pool";
 
 let app: Express;
 
-beforeEach(() => {
-  const db = createDb(":memory:");
-  app = createServer({ db, sessionSecret: "test-secret" });
+beforeEach(async () => {
+  const db = await createTestPool();
+  app = await createServer({ db, sessionSecret: "test-secret" });
 });
 
 describe("POST /api/register", () => {
