@@ -66,5 +66,5 @@ export function MarkdownEditor({
     }
   }, [value, editor]);
 
-  return <EditorContent editor={editor} />;
+  return <EditorContent editor={editor} className="myc-editor-content" />;
 }

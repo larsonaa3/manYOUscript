@@ -240,8 +240,26 @@ body {
   border-bottom: 1px solid var(--myc-border);
 }
 
+/* Tiptap's <EditorContent> renders an unstyled wrapper div around the
+   actual .ProseMirror element - without this, that wrapper breaks the flex
+   chain from .myc-main down, so .ProseMirror's flex:1 has no flex container
+   to size against and just grows to fit all its content instead of
+   scrolling (see the min-height:0 note below for why that also matters). */
+.myc-editor-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .myc-main .ProseMirror {
   flex: 1;
+  /* Flex items default to min-height:auto (i.e. "at least as tall as my
+     content"), which silently defeats flex:1 + overflow-y:auto - without
+     this the element still grows to fit everything instead of clipping to
+     the available space and becoming scrollable. */
+  min-height: 0;
   padding: 1.5rem 2rem;
   outline: none;
   overflow-y: auto;
