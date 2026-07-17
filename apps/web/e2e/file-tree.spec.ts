@@ -60,7 +60,7 @@ test.describe("sidebar file tree", () => {
 
     // Clicking a nested file opens it in the editor.
     await page.getByRole("button", { name: "aria.md" }).click();
-    await expect(page.locator(".myc-editor-header span").first()).toHaveText("characters/aria.md");
+    await expect(page.locator(".myc-editor-header__filename")).toHaveText("characters/aria.md");
 
     await fs.rm(vaultDir, { recursive: true, force: true });
   });

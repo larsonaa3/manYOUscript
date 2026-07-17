@@ -18,6 +18,7 @@ import { QuickSwitcher } from "./QuickSwitcher";
 import { FileTree } from "./FileTree";
 import { buildFileTree } from "./file-tree";
 import { deriveIndexInputs } from "./derive-index-inputs";
+import { deriveNoteType, type NoteType } from "./derive-note-type";
 import { computeReorderSwap } from "./compute-reorder-swap";
 import { useTheme } from "./ThemeProvider";
 import { downloadTextFile } from "./download-text-file";
@@ -36,6 +37,7 @@ export function App() {
   const [isDirty, setIsDirty] = useState(false);
   const [indexVersion, setIndexVersion] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
+  const [frontmatterVersion, setFrontmatterVersion] = useState(0);
   const [distractionFree, setDistractionFree] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -186,6 +188,24 @@ export function App() {
   const currentStatBlock = useMemo(() => {
     return extractStructuredBlocks(content).find((b) => isStatBlockSchemaId(b.schemaId)) ?? null;
   }, [content]);
+
+  const noteType = useMemo(
+    () => deriveNoteType(frontmatterRef.current, Boolean(currentStatBlock)),
+    // frontmatterRef is a mutable ref (not state) so its own changes don't
+    // trigger a re-render; frontmatterVersion and selectedFile are the
+    // signals that it may have changed and this memo should recompute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentStatBlock, frontmatterVersion, selectedFile],
+  );
+
+  const handleTypeChange = useCallback((nextType: NoteType) => {
+    frontmatterRef.current = { ...frontmatterRef.current, type: nextType };
+    setFrontmatterVersion((v) => v + 1);
+    setIsDirty(true);
+    if (nextType !== "character") {
+      setViewMode("editor");
+    }
+  }, []);
 
   const backlinks: LinkRecord[] = useMemo(() => {
     if (!selectedFile) {
@@ -476,7 +496,20 @@ export function App() {
         {selectedFile ? (
           <>
             <div className="myc-editor-header">
-              <span>{selectedFile.relativePath}</span>
+              <span className="myc-editor-header__title">
+                <span className="myc-editor-header__filename">{selectedFile.relativePath}</span>
+                <select
+                  className="myc-type-select"
+                  aria-label="Note type"
+                  value={noteType}
+                  onChange={(event) => handleTypeChange(event.target.value as NoteType)}
+                >
+                  <option value="chapter">Chapter</option>
+                  <option value="session">Session</option>
+                  <option value="character">Character</option>
+                  <option value="note">Note</option>
+                </select>
+              </span>
               <span className="myc-editor-header__actions">
                 <button
                   type="button"
@@ -485,13 +518,15 @@ export function App() {
                 >
                   {distractionFree ? "Exit Focus Mode" : "Focus Mode"}
                 </button>
-                <button
-                  type="button"
-                  className="myc-view-toggle"
-                  onClick={() => setViewMode(viewMode === "editor" ? "sheet" : "editor")}
-                >
-                  {viewMode === "editor" ? "Character Sheet" : "Back to Note"}
-                </button>
+                {noteType === "character" ? (
+                  <button
+                    type="button"
+                    className="myc-view-toggle"
+                    onClick={() => setViewMode(viewMode === "editor" ? "sheet" : "editor")}
+                  >
+                    {viewMode === "editor" ? "Character Sheet" : "Back to Note"}
+                  </button>
+                ) : null}
                 <span>
                   {countWords(content)} words &middot; {isDirty ? "saving…" : "saved"}
                 </span>

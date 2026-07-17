@@ -83,7 +83,7 @@ test.describe("Phase 7: theme, quick switcher, export", () => {
     await expect(page.locator(".myc-quick-switcher__item")).toHaveCount(1);
     await page.keyboard.press("Enter");
 
-    await expect(page.locator(".myc-editor-header span").first()).toHaveText("note-b.md");
+    await expect(page.locator(".myc-editor-header__filename")).toHaveText("note-b.md");
     await fs.rm(vaultDir, { recursive: true, force: true });
   });
 

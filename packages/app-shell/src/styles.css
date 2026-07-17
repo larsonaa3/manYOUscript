@@ -383,10 +383,26 @@ body {
   cursor: default;
 }
 
+.myc-editor-header__title {
+  display: flex;
+  align-items: center;
+  gap: var(--myc-space-3);
+}
+
 .myc-editor-header__actions {
   display: flex;
   align-items: center;
   gap: var(--myc-space-3);
+}
+
+.myc-type-select {
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--myc-radius-md);
+  border: 1px solid var(--myc-border);
+  background: var(--myc-bg-elevated);
+  color: var(--myc-text-muted);
+  cursor: pointer;
+  font-size: var(--myc-font-size-xs);
 }
 
 .myc-view-toggle {
