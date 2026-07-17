@@ -20,6 +20,7 @@ import { buildFileTree } from "./file-tree";
 import { deriveIndexInputs } from "./derive-index-inputs";
 import { deriveNoteType, type NoteType } from "./derive-note-type";
 import { computeReorderSwap } from "./compute-reorder-swap";
+import { readStoredVaultRoot, writeStoredVaultRoot, clearStoredVaultRoot } from "./vault-root-storage";
 import { useTheme } from "./ThemeProvider";
 import { downloadTextFile } from "./download-text-file";
 import "./styles.css";
@@ -87,7 +88,24 @@ export function App() {
     }
     setVaultRoot(root);
     await refreshFiles(root);
+    writeStoredVaultRoot(localStorage, root);
   }, [vault, refreshFiles]);
+
+  useEffect(() => {
+    const storedRoot = readStoredVaultRoot(localStorage);
+    if (!storedRoot) {
+      return;
+    }
+    // Only Tauri/Capacitor can silently re-open a root path with no user
+    // gesture - the browser File System Access API needs a fresh handle
+    // from pickVaultRoot(), so listMarkdownFiles throws here and this
+    // just falls back to the normal "Open Vault Folder" empty state.
+    refreshFiles(storedRoot)
+      .then(() => setVaultRoot(storedRoot))
+      .catch(() => clearStoredVaultRoot(localStorage));
+    // Mount-only: this restores whatever vault was open last session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSelectFile = useCallback(
     async (file: VaultFileInfo) => {
